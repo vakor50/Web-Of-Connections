@@ -66,17 +66,17 @@ text {
 						<div class="input-group-prepend">
 							<div class="input-group-text" id="btnGroupAddon">Search Article Name</div>
 						</div>
-						<input type="text" class="form-control" placeholder="Article name" aria-label="Article name" aria-describedby="btnGroupAddon" id="name">
+						<input type="text" class="form-control" placeholder="Article name" aria-label="Article name" aria-describedby="btnGroupAddon" id="name" value="Albert Einstein">
 					</div>
 					<div class="input-group mb-1 w-100" role="group">
 						<div class="input-group-prepend">
-							<div class="input-group-text" id="btnLinkLimit"># of Links (max 500)</div>
+							<div class="input-group-text" id="linkLimit"># of Links (max 500)</div>
 						</div>
-						<input type="number" class="form-control" aria-label="Node name" aria-describedby="btnLinkLimit" id="limit" value=5>
+						<input type="number" class="form-control" aria-label="Node name" aria-describedby="linkLimit" id="limit" value=5>
 					</div>
 				</div>
 				<button class="btn btn-primary mb-2" id="get_links">Get Linked Articles</button>
-				<button type="button" class="btn btn-primary mb-2" data-toggle="tooltip" data-placement="top" title="This may take a while">
+				<button type="button" class="btn btn-primary mb-2" data-toggle="tooltip" data-placement="top" title="This may take a while" id="next_layer">
 					Get Next Layer of Links
 				</button>
 
@@ -167,13 +167,15 @@ text {
 		}
 
 		function nextWikiLayer() {
+			link_limit = $('#limit').val()
+
 			children = leaf_node_children
 			leaf_node_children = []
 			for (var child of children) {
 				console.log(child)
 				$.ajax({
 		            url: 'http://en.wikipedia.org/w/api.php',
-		            data: { action: 'query', titles: child, prop: 'links', pllimit: 5, format: 'json' },
+		            data: { action: 'query', titles: child, prop: 'links', pllimit: link_limit, format: 'json' },
 		            dataType: 'jsonp',
 		            success: function (data) {
 		            	console.log(data)
@@ -202,7 +204,12 @@ text {
 
 		$('#get_links').click(function() {
 			phrase = $('#name').val()
+			link_limit = $('#limit').val()
 			getInitialWikiLayer()
+		})
+
+		$('#next_layer').click(function () {
+			nextWikiLayer()
 		})
 
 
@@ -233,7 +240,7 @@ text {
 
 		// Print out the list of nodes
 		function printList() {
-			$('#name').val('')
+			$('#name').val()
 			$('#children').html('<li><input type="text" name="child" class="child"></li>')
 			$('#current_web').empty()
 			for (var i = 0; i < list.length; i++) {
