@@ -219,25 +219,6 @@ text {
 			$('#children').append('<li><input type="text" name="child" class="child"></li>')
 		})
 
-		// Add the node and its children to the list of nodes
-		$('#add_node').click(function () {
-			var name = $('#name').val()
-			var children = []
-			var subnode = $('.child').each(function (i) {
-				if ($(this).val()) {
-					children.push( $(this).val() )
-				}
-			})
-
-			var list_node = {
-				"name": name,
-				"children": children
-			}
-			list.push(list_node)
-
-			printList()
-		})
-
 		// Print out the list of nodes
 		function printList() {
 			$('#name').val()
