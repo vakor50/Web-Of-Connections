@@ -9,7 +9,6 @@ Editing added nodes and their children
 - Need to be aware that editing could break other connections so might be better to only make delete an option
 
 Data Formatting
-- In the print display, make the different nodes collapsable
 - In the print display, remove duplicates and merge their children into one entry
 
 ## Version 3
@@ -18,6 +17,9 @@ Setup for real world application (Wikipedia)
 - Use Wikipedia API (MediaWiki) so you can make a web of links off a wikipedia page
 - First run loads all external links (Ext)
 - Second and future runs load  external links from Ext and creates connections between pages that link to each other (doesn't run on non-wikipedia external links for simplicity)
+
+Data Formatting
+- In the print display, make the different nodes collapsable
 
 ## Version 2
 
