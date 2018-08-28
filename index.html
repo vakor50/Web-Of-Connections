@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+	<style type="text/css">
+.links line {
+  stroke: #ccc;
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  font-family: sans-serif;
+  font-size: 10px;
+}
+
+#instructions > p {
+	margin-bottom: 0px;
+}
+
+#link_desc {
+	width: 100%;
+	resize: vertical;
+}
+
+	</style>
+</head>
+<body>
+	<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<textarea id="link_desc"></textarea>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+					<button type="button" class="btn btn-primary" id="save_desc">Save changes</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12 mt-3">
+				<h4>Graph Creation</h4>
+				<div id="instructions">
+					<p>Search for the title of a wikipedia article and get a web of its linked articles</p>
+					<p>Default Web is the first 5 links from the Albert Einstein page</p>
+					<p>Note: All node and child nodes are unique. Links to other nodes are created by making a child or parent have the same name.</p>
+				</div>
+			</div>
+			<div class="col-sm-6 mt-3 border p-2">
+				<div class="btn-toolbar mb-1" role="toolbar" aria-label="Toolbar with button groups">
+					<div class="input-group mb-1 w-100" role="group">
+						<div class="input-group-prepend">
+							<div class="input-group-text" id="btnGroupAddon">Search Article Name</div>
+						</div>
+						<input type="text" class="form-control" placeholder="Article name" aria-label="Article name" aria-describedby="btnGroupAddon" id="name">
+					</div>
+					<div class="input-group mb-1 w-100" role="group">
+						<div class="input-group-prepend">
+							<div class="input-group-text" id="btnLinkLimit"># of Links (max 500)</div>
+						</div>
+						<input type="number" class="form-control" aria-label="Node name" aria-describedby="btnLinkLimit" id="limit" value=5>
+					</div>
+				</div>
+				<button class="btn btn-primary mb-2" id="get_links">Get Linked Articles</button>
+				<button type="button" class="btn btn-primary mb-2" data-toggle="tooltip" data-placement="top" title="This may take a while">
+					Get Next Layer of Links
+				</button>
+
+			</div>
+			<div class="col-sm-6 mt-3" id="current_web">
+			</div>
+		</div>
+		<br>
+		<div class="row">
+			<button class="btn btn-primary" id="graph">Graph</button>
+		</div>
+		<div class="row mt-2 mb-2" id="web_container">
+			<div style="border: solid 1px black;">
+				<svg height="600"></svg>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+	<script type="text/javascript">
+		wiki_main = 'https://en.wikipedia.org/w/api.php?action=query&titles=Main%20Page&prop=revisions&rvprop=content&format=json&formatversion=2'
+			// + '?action=query'
+			// + '&titles=Main%20Page'		// titles=PageA|PageB|PageC to query multiple pages
+			// // + '&redirects'				// target of a redirect is returned instead of the given title
+			// + '&prop=revisions'
+			// + '&rvprop=content'			// get content of latest version of page, rvprop=content|user gets latest page content and  name of  user who made most recent revision
+			// + '&format=json'			// jsonfm is "pretty-printed" HTML for debugging, also has XML and native PHP
+			// + '&formatversion=2'
+		// Using jQuery
+
+		var leaf_node_children = [],
+			phrase = 'Albert Einstein', 
+			link_limit = 5,
+			search_layer = 1;
+
+		var web = {
+			"nodes": [],
+			"links": []
+		}
+		var list = []
+
+		$(document).ready(function() {
+			getInitialWikiLayer()
+		});
+
+		function getInitialWikiLayer() {
+			web = {
+				"nodes": [],
+				"links": []
+			}
+			list = []
+
+			$.ajax({
+	            url: 'http://en.wikipedia.org/w/api.php',
+	            data: { action: 'query', titles: phrase, prop: 'links', pllimit: link_limit, format: 'json' },
+	            dataType: 'jsonp',
+	            success: function (data) {
+	            	// body...
+	            	console.log(data)
+
+					obj = data.query.pages
+	            	if (!obj[-1]) {
+			            children = obj[Object.keys(obj)[0]].links.map((e) => {
+		            		return e.title
+		            	});
+
+		            	var list_node = {
+							"name": phrase,
+							"children": children,
+							"layer": search_layer
+						}
+						list.push(list_node)
+
+						leaf_node_children = children
+
+						nextWikiLayer(list_node.layer)
+
+						printList()
+
+						$('#graph').click()
+					}
+	            }
+	        });
+		}
+
+		function nextWikiLayer() {
+			children = leaf_node_children
+			leaf_node_children = []
+			for (var child of children) {
+				console.log(child)
+				$.ajax({
+		            url: 'http://en.wikipedia.org/w/api.php',
+		            data: { action: 'query', titles: child, prop: 'links', pllimit: 5, format: 'json' },
+		            dataType: 'jsonp',
+		            success: function (data) {
+		            	console.log(data)
+
+		            	obj = data.query.pages
+		            	if (!obj[-1]) {
+			            	var list_node = {
+								"name": obj[Object.keys(obj)[0]].title,
+								"children": obj[Object.keys(obj)[0]].links.map((e) => {
+				            		return e.title
+				            	}),
+				            	"layer": search_layer + 1
+							}
+							list.push(list_node)
+							leaf_node_children =  leaf_node_children.concat(list_node.children)
+
+							printList()
+
+							$('#graph').click()
+						}
+		            }
+	       		});
+			}
+			search_layer++;
+		}
+
+		$('#get_links').click(function() {
+			phrase = $('#name').val()
+			getInitialWikiLayer()
+		})
+
+
+
+		// Add an li element where you can enter a child node
+		$('#add_child').click(function () {
+			$('#children').append('<li><input type="text" name="child" class="child"></li>')
+		})
+
+		// Add the node and its children to the list of nodes
+		$('#add_node').click(function () {
+			var name = $('#name').val()
+			var children = []
+			var subnode = $('.child').each(function (i) {
+				if ($(this).val()) {
+					children.push( $(this).val() )
+				}
+			})
+
+			var list_node = {
+				"name": name,
+				"children": children
+			}
+			list.push(list_node)
+
+			printList()
+		})
+
+		// Print out the list of nodes
+		function printList() {
+			$('#name').val('')
+			$('#children').html('<li><input type="text" name="child" class="child"></li>')
+			$('#current_web').empty()
+			for (var i = 0; i < list.length; i++) {
+				$('#current_web').append(
+					list[i].name 
+					+ ' <button class="btn btn-primary delete-node" type="button" data-name="' + list[i].name + '">x</button>'
+					)
+				$('#current_web').append('<ul id="node' + i + '"></ul>')
+				for (var j = 0; j < list[i].children.length; j++) {
+					$('#node' + i).append('<li>' + list[i].children[j] + '</li>')
+				}
+			}
+		}
+
+		// Delete the selected node and its children
+		$('#current_web').on('click', '.delete-node', function () {
+			console.log('delete')
+			for (var i = 0; i < list.length; i++) {
+				if ($(this).data('name') == list[i].name) {
+					list.splice(i, 1)
+					break;
+				}
+			}
+			printList()
+		})
+
+		// Convert the list of nodes into a graph
+		function listToGraph() {
+			web = {
+				"nodes": [],
+				"links": []
+			}
+
+			for (var n of list) {
+				// Add parent node to the web of nodes
+				var exists = false
+				web['nodes'].forEach(function(item){ 
+					if (item.id == n.name) {
+						exists = true
+					}
+				})
+				if (!exists) {
+					web['nodes'].push({
+						"id": n.name,
+						"layer": n.layer
+					})
+				}
+
+				// Add all children nodes to the web of nodes
+				for (var i = 0; i < n.children.length; i++) {
+					var exists = false
+					web['nodes'].forEach(function(item){ 
+						if (item.id == n.children[i]) {
+							exists = true
+						}
+					})
+					if ( !exists  ) {
+						web['nodes'].push({
+							"id": n.children[i],
+							"layer": n.layer
+						})
+					}
+
+					web['links'].push({
+						"source": n.name,
+						"target": n.children[i],
+						"desc": '',
+					})
+				}
+			}
+		}
+
+		// Save the description associated with the connection
+		$('#save_desc').click(function () {
+			web['links'][ $(this).val() ].desc = $('#link_desc').val()
+			$('#exampleModal').modal('toggle')
+		})
+
+		// Open the modal and get the description info for the connection
+		function getLineInfo (i) {
+			var connect = web['links'][i]
+			$('#exampleModalLabel').text(connect.source.id + ' ―― ' + connect.target.id)
+			$('#link_desc').val(connect.desc)
+			$('#save_desc').val(i)
+			$('#exampleModal').modal('toggle')
+		}
+	</script>
+
+
+	<script>
+		// https://bl.ocks.org/heybignick/3faf257bbbbc7743bb72310d03b86ee8
+		// https://bl.ocks.org/mbostock/4062045
+
+		/*
+		To do:
+			Button for close on each <li> that removes from web and list
+			Button for close on each <ul> 
+			Ignore empty input			
+
+		*/
+
+		$('#graph').click(function() {
+			// convert list of nodes to graph
+			listToGraph()
+
+
+			d3.select("svg").selectAll("*").remove();
+
+			var svg = d3.select("svg"),
+			    width = +d3.select("#web_container").node().getBoundingClientRect().width,
+			    height = +svg.attr("height");
+			svg.attr('width', width);
+
+			var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+			var graph = web
+
+			var simulation = d3.forceSimulation()
+				.nodes(graph.nodes)
+			    .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(30).strength(1))
+			    .force("charge", d3.forceManyBody().strength(-100))
+			    .force('collide', d3.forceCollide().radius(2).strength(5))
+			    .force("center", d3.forceCenter(width / 2, height / 2));
+
+
+			var link = svg.append("g")
+					.attr("class", "links")
+				.selectAll("line")
+				.data(graph.links)
+				.enter().append("line")
+					.attr("id", function (d, i) {
+						return 'line' + i;
+					})
+					.attr("value", function (d) {
+						return d.desc;
+					})
+					.attr("onclick", function (d, i) {
+						return "getLineInfo(" + i + ")"
+					})
+					.attr("stroke-width", function(d) { return 4 /*Math.sqrt(d.value)*/; })
+					.on("mouseover", function(d) {
+						d3.select(this).style("cursor", "pointer"); 
+					})
+					.on("mouseout", function(d) {
+						d3.select(this).style("cursor", "default"); 
+					});
+
+			var node = svg.append("g")
+					.attr("class", "nodes")
+				.selectAll("g")
+				.data(graph.nodes)
+				.enter().append("g")
+    
+			var circles = node.append("circle")
+				.attr("r", 5)
+				.attr("fill", function(d) { return color(d.layer); })
+				.on("mouseover", function(d) {
+					d3.select(this).style("cursor", "pointer"); 
+				})
+				.on("mouseout", function(d) {
+					d3.select(this).style("cursor", "default"); 
+				})
+				.call(d3.drag()
+					.on("start", dragstarted)
+					.on("drag", dragged)
+					.on("end", dragended));
+
+			var lables = node.append("text")
+				.text(function(d) {
+					return d.id;
+				})
+				.attr('x', 6)
+				.attr('y', 3);
+
+			node.append("title")
+				.text(function(d) { return d.id; });
+
+			simulation
+				.nodes(graph.nodes)
+				.on("tick", ticked);
+
+			simulation.force("link")
+				.links(graph.links);
+
+			// //add zoom capabilities 
+			// var zoom_handler = d3.zoom()
+			// 	.on("zoom", zoom_actions);
+
+			// zoom_handler(svg);  
+
+			// //Zoom functions 
+			// function zoom_actions(){
+			// 	svg.selectAll('g').attr("transform", d3.event.transform)
+			// }
+
+			function ticked() {
+			    link
+			        .attr("x1", function(d) { return d.source.x; })
+			        .attr("y1", function(d) { return d.source.y; })
+			        .attr("x2", function(d) { return d.target.x; })
+			        .attr("y2", function(d) { return d.target.y; });
+
+			    radius = 6
+			    node
+			        .attr("transform", function(d) {
+			    		d.x = Math.max(radius, Math.min(width - radius, d.x))
+			    		d.y = Math.max(radius, Math.min(height - radius, d.y));
+			         	return "translate(" + d.x + "," + d.y + ")";
+			        })
+			}
+	
+			function dragstarted(d) {
+				if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+				d.fx = d.x;
+				d.fy = d.y;
+			}
+
+			function dragged(d) {
+				d.fx = d3.event.x;
+				d.fy = d3.event.y;
+			}
+
+			function dragended(d) {
+				if (!d3.event.active) simulation.alphaTarget(0);
+				d.fx = null;
+				d.fy = null;
+			}
+			
+		})
+	</script>
+</body>
+</html>

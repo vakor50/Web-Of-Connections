@@ -8,10 +8,13 @@ Editing added nodes and their children
 - Implement state management so that you can click an added node from the web and it will be loaded into the input boxes for editing
 - Need to be aware that editing could break other connections so might be better to only make delete an option
 
-Setup for real world application
-- Acquire access to some Wiki API so you can make a web of links off a wikipedia page
-- First iteration loads all external links (Ext)
-- Second iteration loads all external links from Ext and creates connections between pages that link to each other (doesn't run on non-wikipedia external links for simplicity)
+
+## Version 3
+
+Setup for real world application (Wikipedia)
+- Use Wikipedia API (MediaWiki) so you can make a web of links off a wikipedia page
+- First run loads all external links (Ext)
+- Second and future runs load  external links from Ext and creates connections between pages that link to each other (doesn't run on non-wikipedia external links for simplicity)
 
 ## Version 2
 
