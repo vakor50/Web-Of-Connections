@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+	<style type="text/css">
+.links line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  font-family: sans-serif;
+  font-size: 10px;
+}
+
+#instructions > p {
+	margin-bottom: 0px;
+}
+
+#link_desc {
+	width: 100%;
+	resize: vertical;
+}
+
+	</style>
+</head>
+<body>
+	<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<textarea id="link_desc"></textarea>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+					<button type="button" class="btn btn-primary" id="save_desc">Save changes</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12 mt-3">
+				<h4>Graph Creation</h4>
+				<div id="instructions">
+					<p>Enter a parent node's name, then enter as many child nodes as needed.</p>
+					<p>Clicking 'Add Child' will give another input box for a child.</p>
+					<p>Clicking 'Add Node' will store the current node and it's children.</p>
+					<p>Clicking 'Graph' will graph the stored nodes and their children.</p>
+					<p>Note: All node and child nodes should be unique. Links to other nodes are created by making a child or parent have the same name.</p>
+				</div>
+			</div>
+			<div class="col-sm-6 mt-3 border p-2">
+				<div class="btn-toolbar mb-1" role="toolbar" aria-label="Toolbar with button groups">
+					<div class="input-group mb-1 w-100" role="group">
+						<div class="input-group-prepend">
+							<div class="input-group-text" id="btnGroupAddon">Enter Parent Name</div>
+						</div>
+						<input type="text" class="form-control" placeholder="Node name" aria-label="Node name" aria-describedby="btnGroupAddon" id="name">
+					</div>
+				</div>
+				<div class="border mb-3 p-2">
+					<ul id="children">
+						<li><input type="text" name="child" class="child"></li>
+					</ul>
+					<button class="btn btn-primary ml-4" type="button" id="add_child">Add Child</button>
+				</div>
+				<button class="btn btn-primary" id="add_node">Add Node</button>
+			</div>
+			<div class="col-sm-6 mt-3" id="current_web">
+			</div>
+		</div>
+		<br>
+		<div class="row">
+			<button class="btn btn-primary" id="graph">Graph</button>
+		</div>
+		<div class="row mt-2 mb-2">
+			<div style="border: solid 1px black;">
+				<svg width="480" height="300"></svg>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+	<script type="text/javascript">
+		var web = {
+			"nodes": [],
+			"links": []
+		}
+		var list = []
+		$('#add_child').click(function () {
+			$('#children').append('<li><input type="text" name="child" class="child"></li>')
+		})
+
+		var count = 0;
+
+		function listToGraph() {
+			web = {
+				"nodes": [],
+				"links": []
+			}
+
+			for (var n of list) {
+				// Add parent node to the web of nodes
+				var exists = false
+				web['nodes'].forEach(function(item){ 
+					if (item.id == n.name) {
+						exists = true
+					}
+				})
+				if (!exists) {
+					web['nodes'].push({
+						"id": n.name
+					})
+				}
+
+				// Add all children nodes to the web of nodes
+				for (var i = 0; i < n.children.length; i++) {
+					var exists = false
+					web['nodes'].forEach(function(item){ 
+						if (item.id == n.children[i]) {
+							exists = true
+						}
+					})
+					if ( !exists  ) {
+						web['nodes'].push({
+							"id": n.children[i]
+						})
+					}
+
+					web['links'].push({
+						"source": n.name,
+						"target": n.children[i],
+						"desc": ''
+					})
+				}
+			}
+
+		}
+
+		function printList() {
+			$('#name').val('')
+			$('#children').html('<li><input type="text" name="child" class="child"></li>')
+			$('#current_web').empty()
+			for (var i = 0; i < list.length; i++) {
+				$('#current_web').append(
+					list[i].name 
+					+ ' <button class="btn btn-primary delete-node" type="button" data-name="' + list[i].name + '">x</button>'
+					)
+				$('#current_web').append('<ul id="node' + i + '"></ul>')
+				for (var j = 0; j < list[i].children.length; j++) {
+					$('#node' + i).append('<li>' + list[i].children[j] + '</li>')
+				}
+			}
+		}
+
+		$('#add_node').click(function () {
+			var name = $('#name').val()
+			var children = []
+			var subnode = $('.child').each(function (i) {
+				if ($(this).val()) {
+					children.push( $(this).val() )
+				}
+			})
+
+			var list_node = {
+				"name": name,
+				"children": children
+			}
+			list.push(list_node)
+
+			printList()
+		})
+
+		$('#current_web').on('click', '.delete-node', function () {
+			console.log('delete')
+			for (var i = 0; i < list.length; i++) {
+				if ($(this).data('name') == list[i].name) {
+					list.splice(i, 1)
+					break;
+				}
+			}
+			printList()
+		})
+
+		$('#save_desc').click(function () {
+			web['links'][ $(this).val() ].desc = $('#link_desc').val()
+			$('#exampleModal').modal('toggle')
+		})
+
+		function getLineInfo (i) {
+			var connect = web['links'][i]
+			$('#exampleModalLabel').text(connect.source.id + ' ―― ' + connect.target.id)
+			$('#link_desc').val(connect.desc)
+			$('#save_desc').val(i)
+			$('#exampleModal').modal('toggle')
+		}
+	</script>
+	<script>
+		// https://bl.ocks.org/heybignick/3faf257bbbbc7743bb72310d03b86ee8
+		// https://bl.ocks.org/mbostock/4062045
+
+		/*
+		To do:
+			Button for close on each <li> that removes from web and list
+			Button for close on each <ul> 
+			Ignore empty input			
+
+		*/
+
+		$('#graph').click(function() {
+			// convert list of nodes to graph
+			listToGraph()
+
+
+			d3.select("svg").selectAll("*").remove();
+
+			var svg = d3.select("svg"),
+			    width = +svg.attr("width"),
+			    height = +svg.attr("height");
+
+			var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+			var simulation = d3.forceSimulation()
+			    .force("link", d3.forceLink().id(function(d) { return d.id; }))
+			    .force("charge", d3.forceManyBody())
+			    .force("center", d3.forceCenter(width / 2, height / 2));
+
+			var graph = web
+
+			var link = svg.append("g")
+					.attr("class", "links")
+				.selectAll("line")
+				.data(graph.links)
+				.enter().append("line")
+					.attr("id", function (d, i) {
+						return 'line' + i;
+					})
+					.attr("value", function (d) {
+						return d.desc;
+					})
+					.attr("onclick", function (d, i) {
+						return "getLineInfo(" + i + ")"
+					})
+					.attr("stroke-width", function(d) { return 4 /*Math.sqrt(d.value)*/; });
+
+			var node = svg.append("g")
+					.attr("class", "nodes")
+				.selectAll("g")
+				.data(graph.nodes)
+				.enter().append("g")
+    
+			var circles = node.append("circle")
+				.attr("r", 5)
+				.attr("fill", function(d) { return "black" /*color(d.group)*/; })
+				.call(d3.drag()
+					.on("start", dragstarted)
+					.on("drag", dragged)
+					.on("end", dragended));
+
+			var lables = node.append("text")
+				.text(function(d) {
+					return d.id;
+				})
+				.attr('x', 6)
+				.attr('y', 3);
+
+			node.append("title")
+				.text(function(d) { return d.id; });
+
+			simulation
+				.nodes(graph.nodes)
+				.on("tick", ticked);
+
+			simulation.force("link")
+				.links(graph.links);
+
+			function ticked() {
+			    link
+			        .attr("x1", function(d) { return d.source.x; })
+			        .attr("y1", function(d) { return d.source.y; })
+			        .attr("x2", function(d) { return d.target.x; })
+			        .attr("y2", function(d) { return d.target.y; });
+
+			    node
+			        .attr("transform", function(d) {
+			          return "translate(" + d.x + "," + d.y + ")";
+			        })
+			}
+	
+			function dragstarted(d) {
+			  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+			  d.fx = d.x;
+			  d.fy = d.y;
+			}
+
+			function dragged(d) {
+			  d.fx = d3.event.x;
+			  d.fy = d3.event.y;
+			}
+
+			function dragended(d) {
+			  if (!d3.event.active) simulation.alphaTarget(0);
+			  d.fx = null;
+			  d.fy = null;
+			}
+			
+		})
+
+
+
+	</script>
+</body>
+</html>
