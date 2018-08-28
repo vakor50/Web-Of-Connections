@@ -227,10 +227,12 @@ text {
 			$('#current_web').empty()
 			for (var i = 0; i < list.length; i++) {
 				$('#current_web').append(
-					'<div class="mt-1">'
+					'<div class="mt-2">'
 					+ list[i].name 
+					+ '<div class="float-right">'
 					+ ' <button class="btn btn-primary btn-sm delete-node" type="button" aria-label="Close" data-name="' + list[i].name + '"><span aria-hidden="true">&times;</span></button>'
 					+ ' <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#node_children_wrap_' + i + '"><i class="fas fa-sort-down"></i></button>'
+					+ '</div>'
 					+ '</div>'
 					)
 				$('#current_web').append('<div class="collapse" id="node_children_wrap_' + i + '"><ul id="node' + i + '"></ul></div>')
