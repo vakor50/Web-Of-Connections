@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+	<style type="text/css">
+.links line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  font-family: sans-serif;
+  font-size: 10px;
+}
+
+#instructions > p {
+	margin-bottom: 0px;
+}
+
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12 mt-3">
+				<h4>Graph Creation</h4>
+				<div id="instructions">
+					<p>Enter a parent node's name, then enter as many child nodes as needed.</p>
+					<p>Clicking 'Add Child' will give another input box for a child.</p>
+					<p>Clicking 'Add Node' will store the current node and it's children.</p>
+					<p>Clicking 'Graph' will graph the stored nodes and their children.</p>
+					<p>Note: All node and child nodes should be unique. Links to other nodes are created by making a child or parent have the same name.</p>
+				<div>
+			</div>
+			<div class="col-sm-6 mt-3">
+				<div class="btn-toolbar mb-1" role="toolbar" aria-label="Toolbar with button groups">
+					<div class="input-group mb-1" role="group" ar>
+						<div class="input-group-prepend">
+							<div class="input-group-text" id="btnGroupAddon">Enter Parent Name</div>
+						</div>
+						<input type="text" class="form-control" placeholder="Node name" aria-label="Node name" aria-describedby="btnGroupAddon" id="name">
+						<!-- <div class="input-group-append">
+							
+						</div> -->
+					</div>
+				</div>
+				<ul id="children">
+					<li><input type="text" name="child" class="child"></li>
+				</ul>
+				<button class="btn btn-primary ml-4" type="button" id="add_child">Add Child</button>
+				<br><br>
+				<button class="btn btn-primary" id="add_node">Add Node</button>
+			</div>
+			<div class="col-sm-6 mt-3" id="current_web">
+			</div>
+		</div>
+		<br>
+		<div class="row">
+			<button class="btn btn-primary" id="graph">Graph</button>
+		</div>
+		<div class="row">
+			<div style="border: solid 1px black;">
+				<svg width="960" height="600"></svg>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script type="text/javascript">
+		var web = {
+			"nodes": [],
+			"links": []
+		}
+		var list = []
+		$('#add_child').click(function () {
+			$('#children').append('<li><input type="text" name="child" class="child"></li>')
+		})
+
+		$('#add_node').click(function () {
+			var name = $('#name').val()
+			var children = []
+			var subnode = $('.child').each(function (i) {
+				if ($(this).val()) {
+					children.push( $(this).val() )
+				}
+			})
+
+			var list_node = {
+				"name": name,
+				"children": children
+			}
+			list.push(list_node)
+
+			var exists = false
+			web['nodes'].forEach(function(item){ 
+				if (item.id == name) {
+					exists = true
+				}
+			})
+			if (!exists) {
+				web['nodes'].push({
+					"id": name
+				})
+			}
+
+			for (var i = 0; i < children.length; i++) {
+				var exists = false
+				web['nodes'].forEach(function(item){ 
+					if (item.id == children[i]) {
+						exists = true
+					}
+				})
+				if ( !exists  ) {
+					web['nodes'].push({
+						"id": children[i]
+					})
+				}
+
+				web['links'].push({
+					"source": name,
+					"target": children[i]
+				})
+			}
+
+			console.log(web)
+
+			$('#name').val('')
+			$('#children').html('<li><input type="text" name="child" class="child"></li>')
+			$('#current_web').empty()
+			for (var i = 0; i < list.length; i++) {
+				$('#current_web').append('' + list[i].name + '')
+				$('#current_web').append('<ul id="node' + i + '"></ul>')
+				for (var j = 0; j < list[i].children.length; j++) {
+					$('#node' + i).append('<li>' + list[i].children[j] + '</li>')
+				}
+			}
+		})
+	</script>
+	<script>
+		// https://bl.ocks.org/heybignick/3faf257bbbbc7743bb72310d03b86ee8
+		// https://bl.ocks.org/mbostock/4062045
+
+		/*
+		To do:
+			Button for close on each <li> that removes from web and list
+			Button for close on each <ul> 
+			Ignore empty input			
+
+		*/
+
+		$('#graph').click(function() {
+			d3.select("svg").selectAll("*").remove();
+
+			var svg = d3.select("svg"),
+			    width = +svg.attr("width"),
+			    height = +svg.attr("height");
+
+			var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+			var simulation = d3.forceSimulation()
+			    .force("link", d3.forceLink().id(function(d) { return d.id; }))
+			    .force("charge", d3.forceManyBody())
+			    .force("center", d3.forceCenter(width / 2, height / 2));
+
+			var graph = web
+
+			var link = svg.append("g")
+					.attr("class", "links")
+				.selectAll("line")
+				.data(graph.links)
+				.enter().append("line")
+					.attr("stroke-width", function(d) { return 4 /*Math.sqrt(d.value)*/; });
+
+			var node = svg.append("g")
+					.attr("class", "nodes")
+				.selectAll("g")
+				.data(graph.nodes)
+				.enter().append("g")
+    
+			var circles = node.append("circle")
+				.attr("r", 5)
+				.attr("fill", function(d) { return "black" /*color(d.group)*/; })
+				.call(d3.drag()
+					.on("start", dragstarted)
+					.on("drag", dragged)
+					.on("end", dragended));
+
+			var lables = node.append("text")
+				.text(function(d) {
+					return d.id;
+				})
+				.attr('x', 6)
+				.attr('y', 3);
+
+			node.append("title")
+				.text(function(d) { return d.id; });
+
+			simulation
+				.nodes(graph.nodes)
+				.on("tick", ticked);
+
+			simulation.force("link")
+				.links(graph.links);
+
+			function ticked() {
+			    link
+			        .attr("x1", function(d) { return d.source.x; })
+			        .attr("y1", function(d) { return d.source.y; })
+			        .attr("x2", function(d) { return d.target.x; })
+			        .attr("y2", function(d) { return d.target.y; });
+
+			    node
+			        .attr("transform", function(d) {
+			          return "translate(" + d.x + "," + d.y + ")";
+			        })
+			}
+	
+			function dragstarted(d) {
+			  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+			  d.fx = d.x;
+			  d.fy = d.y;
+			}
+
+			function dragged(d) {
+			  d.fx = d3.event.x;
+			  d.fy = d3.event.y;
+			}
+
+			function dragended(d) {
+			  if (!d3.event.active) simulation.alphaTarget(0);
+			  d.fx = null;
+			  d.fy = null;
+			}
+			
+		})
+
+
+
+	</script>
+</body>
+</html>
