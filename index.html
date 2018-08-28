@@ -3,6 +3,7 @@
 <head>
 	<title></title>
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 	<style type="text/css">
 .links line {
   stroke: #ccc;
@@ -222,14 +223,17 @@ text {
 		// Print out the list of nodes
 		function printList() {
 			$('#name').val()
-			$('#children').html('<li><input type="text" name="child" class="child"></li>')
+			$('#children').html('<li><input type="text" name="child" class="child" /></li>')
 			$('#current_web').empty()
 			for (var i = 0; i < list.length; i++) {
 				$('#current_web').append(
-					list[i].name 
-					+ ' <button class="btn btn-primary delete-node" type="button" data-name="' + list[i].name + '">x</button>'
+					'<div class="mt-1">'
+					+ list[i].name 
+					+ ' <button class="btn btn-primary btn-sm delete-node" type="button" aria-label="Close" data-name="' + list[i].name + '"><span aria-hidden="true">&times;</span></button>'
+					+ ' <button class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#node_children_wrap_' + i + '"><i class="fas fa-sort-down"></i></button>'
+					+ '</div>'
 					)
-				$('#current_web').append('<ul id="node' + i + '"></ul>')
+				$('#current_web').append('<div class="collapse" id="node_children_wrap_' + i + '"><ul id="node' + i + '"></ul></div>')
 				for (var j = 0; j < list[i].children.length; j++) {
 					$('#node' + i).append('<li>' + list[i].children[j] + '</li>')
 				}
