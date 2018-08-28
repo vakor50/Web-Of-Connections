@@ -8,6 +8,9 @@ Editing added nodes and their children
 - Implement state management so that you can click an added node from the web and it will be loaded into the input boxes for editing
 - Need to be aware that editing could break other connections so might be better to only make delete an option
 
+Data Formatting
+- In the print display, make the different nodes collapsable
+- In the print display, remove duplicates and merge their children into one entry
 
 ## Version 3
 
