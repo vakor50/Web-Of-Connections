@@ -18,6 +18,8 @@ Setup for real world application (Wikipedia)
 - First run loads all external links (Ext)
 - Second and future runs load  external links from Ext and creates connections between pages that link to each other (doesn't run on non-wikipedia external links for simplicity)
 
+Only works on an HTTP connection, NOT on a HTTPS connection
+
 Data Formatting
 - In the print display, make the different nodes collapsable
 
